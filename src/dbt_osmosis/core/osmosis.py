@@ -701,6 +701,9 @@ def _is_fqn_match(node: ResultNode, fqns: list[str]) -> bool:
 def _is_file_match(node: ResultNode, paths: list[Path | str], root: Path | str) -> bool:
     """Check if a node's file path matches any of the provided file paths or names."""
     node_path = Path(root, node.original_file_path).resolve()
+    # Initialize absolute_patch_path to avoid UnboundLocalError
+    absolute_patch_path = None  
+
     if node.patch_path:
         absolute_patch_path = Path(root, node.patch_path.partition("://")[-1]).resolve()
     yaml_path = absolute_patch_path if absolute_patch_path.exists() else None

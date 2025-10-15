@@ -47,12 +47,67 @@ _CONTEXT = {"max_content_width": 800}
 @click.version_option()
 def cli() -> None:
     """dbt-osmosis is a CLI tool for dbt that helps you manage, document, and organize your dbt yaml files"""
+
     pass
+
+
+def test_llm_connection(llm_client=None) -> None:
+    """Test the connection to the LLM client."""
+    import os
+    from dbt_osmosis.core.llm import get_llm_client
+
+    llm_client = os.getenv("LLM_PROVIDER")
+    if not llm_client:
+        click.echo(
+            "ERROR: LLM_PROVIDER environment variable is not set. Please set it to one of the available providers."
+        )
+        return
+
+    client, model_engine = get_llm_client()
+    if not client or not model_engine:
+        click.echo(
+            f"Connection ERROR: The environment variables for LLM provider {llm_client} are not set correctly."
+        )
+        return
+
+    click.echo(
+        f"LLM client connection successful. Provider: {llm_client}, Model Engine: {model_engine}"
+    )
+
+
+@cli.command()
+def test_llm() -> None:
+    """Test the connection to the LLM client"""
+    logger.info("INFO: Invoking test_llm_connection...")
+    from dbt_osmosis.core.llm import get_llm_client
+
+    llm_client = get_llm_client()
+    test_llm_connection(llm_client)
+    click.echo("LLM client connection test completed.")
 
 
 @cli.group()
 def yaml():
     """Manage, document, and organize dbt YAML files"""
+
+
+def logging_opts(func: t.Callable[P, T]) -> t.Callable[P, T]:
+    """Options common across subcommands"""
+
+    @click.option(
+        "--log-level",
+        type=click.STRING,
+        default="INFO",
+        help="The log level to use. Default is INFO.",
+    )
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        # NOTE: Remove log_level from kwargs so it's not passed to the function.
+        log_level = kwargs.pop("log_level")
+        logger.set_log_level(str(log_level).upper())
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 @cli.group()
@@ -151,6 +206,7 @@ def yaml_opts(func: t.Callable[P, T]) -> t.Callable[P, T]:
 @yaml.command(context_settings=_CONTEXT)
 @dbt_opts
 @yaml_opts
+@logging_opts
 @click.option(
     "-F",
     "--force-inherit-descriptions",
@@ -285,6 +341,7 @@ def refactor(
 @yaml.command(context_settings=_CONTEXT)
 @dbt_opts
 @yaml_opts
+@logging_opts
 @click.option(
     "--auto-apply",
     is_flag=True,
@@ -338,6 +395,7 @@ def organize(
 @yaml.command(context_settings=_CONTEXT)
 @dbt_opts
 @yaml_opts
+@logging_opts
 @click.option(
     "-F",
     "--force-inherit-descriptions",
@@ -459,6 +517,7 @@ def document(
         allow_extra_args=True,
     )
 )
+@logging_opts
 @click.option(
     "--project-dir",
     default=discover_project_dir,
@@ -541,6 +600,7 @@ def workbench(
 
 @sql.command(context_settings=_CONTEXT)
 @dbt_opts
+@logging_opts
 @click.argument("sql")
 def run(
     sql: str = "",
@@ -571,6 +631,7 @@ def run(
 
 @sql.command(context_settings=_CONTEXT)
 @dbt_opts
+@logging_opts
 @click.argument("sql")
 def compile(
     sql: str = "",

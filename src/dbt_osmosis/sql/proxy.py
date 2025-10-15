@@ -118,7 +118,9 @@ class DbtSession(Session):
         return [row.values() for row in rows], t.cast(tuple[str], table.column_names)
 
     async def schema(self):
-        schema: defaultdict[str, dict[str, dict[str, tuple[str, str | None]]]] = defaultdict(dict)
+        schema: defaultdict[str, dict[str, dict[str, tuple[str, t.Optional[str]]]]] = defaultdict(
+            dict
+        )
         for node in chain(
             self.project.manifest.sources.values(), self.project.manifest.nodes.values()
         ):

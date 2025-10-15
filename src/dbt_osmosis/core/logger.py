@@ -21,7 +21,7 @@ def get_rotating_log_handler(name: str, path: Path, formatter: str) -> RotatingF
     """This handler writes warning and higher level outputs to logs in a home .dbt-osmosis directory rotating them as needed"""
     path.mkdir(parents=True, exist_ok=True)
     handler = RotatingFileHandler(
-        str(path / "{log_name}.log".format(log_name=name)),
+        str(path / f"{name}.log"),
         maxBytes=int(1e6),
         backupCount=3,
     )
@@ -33,7 +33,7 @@ def get_rotating_log_handler(name: str, path: Path, formatter: str) -> RotatingF
 @lru_cache(maxsize=10)
 def get_logger(
     name: str = "dbt-osmosis",
-    level: int | str = _LOGGING_LEVEL,
+    level: t.Union[int, str] = _LOGGING_LEVEL,
     path: Path = _LOG_PATH,
     formatter: str = _LOG_FILE_FORMAT,
 ) -> logging.Logger:
@@ -72,6 +72,18 @@ LOGGER = get_logger()
 """Default logger for dbt-osmosis"""
 
 
+def set_log_level(level: t.Union[int, str]) -> None:
+    """Set the log level for the default logger"""
+    global LOGGER
+    if isinstance(level, str):
+        level = getattr(logging, level, logging.INFO)
+    LOGGER.setLevel(level)
+    for handler in LOGGER.handlers:
+        # NOTE: RotatingFileHandler is fixed at WARNING level.
+        if isinstance(handler, RichHandler):
+            handler.setLevel(level)
+
+
 class LogMethod(t.Protocol):
     """Protocol for logger methods"""
 
@@ -79,5 +91,7 @@ class LogMethod(t.Protocol):
 
 
 def __getattr__(name: str) -> LogMethod:
+    if name == "set_log_level":
+        return set_log_level
     func = getattr(LOGGER, name)
     return func

@@ -424,8 +424,11 @@ def synchronize_data_types(context: t.Any, node: ResultNode | None = None) -> No
         ):
             is_lower = column.data_type and column.data_type.islower()
             if inc_c.type:
-                column.data_type = inc_c.type.lower() if lowercase or is_lower else inc_c.type
-
+                # As per Asiakasdata team documentation conventions
+                inc_c.type = inc_c.type.lower()
+                inc_c.type = inc_c.type.replace("character varying", "varchar").replace("varchar(16777216)", "varchar")
+                inc_c.type = inc_c.type.replace("number(38,0)", "number")
+                column.data_type = inc_c.type
 
 @_transform_op("Synthesize Missing Documentation")
 def synthesize_missing_documentation_with_openai(

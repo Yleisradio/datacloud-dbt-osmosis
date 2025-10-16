@@ -55,13 +55,14 @@ def _sync_doc_section(context: t.Any, node: ResultNode, doc_section: dict[str, t
                 # keep constraints as is if present, mashumaro dumps too much info :shrug:
                 continue
             merged[k] = v
+        # Not needed for Asiakasdata documentation conventions
+        del merged["tags"]
 
-        if merged.get("description") is None:
-            merged.pop("description", None)
-        if merged.get("tags", []) == []:
-            merged.pop("tags", None)
+        if merged.get("meta", {}) != {} and merged.get("meta", {}).get("osmosis_progenitor", None) is not None:
+            del merged["meta"]["osmosis_progenitor"]
+
         if merged.get("meta", {}) == {}:
-            merged.pop("meta", None)
+            del merged["meta"]
 
         for k in set(merged.keys()) - {"name", "description", "tags", "meta"}:
             if merged[k] in (None, [], {}):
@@ -71,7 +72,8 @@ def _sync_doc_section(context: t.Any, node: ResultNode, doc_section: dict[str, t
             "output-to-lower", node, name, fallback=context.settings.output_to_lower
         ):
             merged["name"] = merged["name"].lower()
-
+        # Not needed for Asiakasdata documentation conventions
+        del merged["config"]
         incoming_columns.append(merged)
 
     doc_section["columns"] = incoming_columns
